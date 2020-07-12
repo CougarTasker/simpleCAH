@@ -129,7 +129,6 @@ app.post("/play",function(req,res){
     name:req.body.name
         });
 });
-
 var currentBlackCard = [];
 var cm = new multiCardMaster(new cardMaster("cust.csv"),new cardMaster("Cards_Against_Humanity.csv"),0.5);
 var currentCombCards = [];
@@ -141,7 +140,12 @@ app.get("/start",function(req,res){
     	allUpdate();
     	res.send("done");
 });
+app.get("/stop",function(req,res){
 
+    	stop();
+    	allUpdate();
+    	res.send("done");
+});
 function startRound(){
 	currentBlackCard = [cm.pickBlackCard()];
    	currentCombCards = [];
@@ -157,6 +161,11 @@ function startRound(){
 			}
 	}
 	picker+=1;
+}
+function stop(){
+	var players =[];
+	var currentCombCards = [];
+	var currentBlackCard = [];
 }
 app.ws('/', (ws, req) => {
 	
