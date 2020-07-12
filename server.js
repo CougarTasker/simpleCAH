@@ -163,9 +163,9 @@ function startRound(){
 	picker+=1;
 }
 function stop(){
-	var players =[];
-	var currentCombCards = [];
-	var currentBlackCard = [];
+	players =[];
+	currentCombCards = [];
+	currentBlackCard = [];
 }
 app.ws('/', (ws, req) => {
 	
