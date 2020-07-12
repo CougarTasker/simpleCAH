@@ -70,27 +70,39 @@ function multiCardMaster(cma,cmb,fact){
 	this.cma= cma;
 	this.cmb = cmb;
 	this.fact = fact
-	
+	this.pblack = []
 
 	
-  this.pickWhiteCard = ()=>{
-  	if(Math.random() > fact){
-  		return cma.pickWhiteCard();
-  	}else{
-  		return cmb.pickWhiteCard();
-  	}
+  this.pickWhiteCard = (cards)=>{
+  	var card;
+  	do{
+	  	if(Math.random() > this.fact){
+	  		card= cma.pickWhiteCard();
+	  	}else{
+	  		card= cmb.pickWhiteCard();
+	  	}
+	  }while(cards.includes(card));
+	  return card;
   };
    this.pickBlackCard = ()=>{
-  	if(Math.random() > fact){
-  		return cma.pickBlackCard();
-  	}else{
-  		return cmb.pickBlackCard();
-  	}
+  	var card;
+  	do{
+	  	if(Math.random() > this.fact){
+	  		card= cma.pickBlackCard();
+	  	}else{
+	  		card= cmb.pickBlackCard();
+	  	}
+	  }while(this.pblack.includes(card));
+	  if(this.pblack.length>=10){
+	  	this.pblack.shift();
+	  }
+	  this.pblack.push(card);
+	  return card;
   };
-  this.pickNWhiteCards = (n)=>{
+  this.pickNWhiteCards = (n,cards)=>{
   	out = [];
   	for(i=0;i<n;i++){
-  		out.push(this.pickWhiteCard());
+  		out.push(this.pickWhiteCard(cards));
   	}
   	return out;
   };
@@ -134,6 +146,8 @@ var cm = new multiCardMaster(new cardMaster("cust.csv"),new cardMaster("Cards_Ag
 var currentCombCards = [];
 var players =[];
 var picker = 0;
+var roundPlayerCount = 0;
+var scoreBord = [];
 app.get("/start",function(req,res){
 
     	startRound();
@@ -152,7 +166,7 @@ function startRound(){
 	var i = 0;
 	picker = picker % Object.keys(players).length;
 	for(var key in players) {
-			players[key].white = players[key].white.concat(cm.pickNWhiteCards(10-players[key].white.length));
+			players[key].white = players[key].white.concat(cm.pickNWhiteCards(10-players[key].white.length,players[key].white));
 			players[key].pick = (i++ == picker);
 			if(players[key].pick){
 				players[key].gameState =2;
@@ -161,11 +175,16 @@ function startRound(){
 			}
 	}
 	picker+=1;
+	roundPlayerCount = Object.keys(players).length;
 }
+app.post("/players",function(req,res){
+    	res.send(JSON.stringify(Object.keys(players)));
+});
 function stop(){
 	players =[];
 	currentCombCards = [];
 	currentBlackCard = [];
+	scoreBord=[];
 }
 app.ws('/', (ws, req) => {
 	
@@ -179,29 +198,32 @@ app.ws('/', (ws, req) => {
 	//console.log(store);
     ws.on('message', msg => {
     	data = JSON.parse(msg);
-
     	if(!players[data.name]){
     			players[data.name] = {};
 	    		players[data.name].white = [];
 	    		players[data.name].name= data.name;
 	    		players[data.name].pick = false;
-	    		players[data.name].score = 0;
+	    		scoreBord[data.name]= {name:data.name,score:0};
 	    		players[data.name].gameState =0;
+	    		players[data.name].old =0;
+	    		players[data.name].win = false;
 	    		allUpdate();
     	}
     	session = players[data.name];
 
     	if(data.update){
-
     		updateData={
     			update:false,
     			white:session.white,
     			black:currentBlackCard,
     			comb:currentCombCards,
     			game:session.gameState,
-    			score:Object.values(players)
+    			old:session.old,
+    			score:Object.values(scoreBord),
+    			win:session.win
     		}
-
+    		session.old = session.gameState
+    		session.win = false;
 			ws.send(JSON.stringify(updateData));
     	}else{
     		if(data.white){
@@ -212,12 +234,13 @@ app.ws('/', (ws, req) => {
     				return !data.white.includes(o.id);
     			});
     			var text = currentBlackCard[0].text;
+    			text = text.split(/_+/);
     			for(i=0;i<parts.length;i++){
-		  			text = text.replace(/_+/,function(x){
-    				return `<span class="blank">` +parts[i].text + `</span>`;
-    			});
+    				sep =`<span class="blank">` +parts[i].text + `</span>`
+		  			text.splice(2*i+1,0,sep);
+    			
     			}
-  
+    			text = text.join('');
     			comb={
     				name:session.name,
     				text:text
@@ -225,7 +248,7 @@ app.ws('/', (ws, req) => {
     			currentCombCards.push(comb);
     			shuffle(currentCombCards);
     			session.gameState = 2;
-    			if(currentCombCards.length >= Object.keys(players).length -1){
+    			if(currentCombCards.length >= roundPlayerCount -1){
 					for(var key in players) {
 						if(players[key].pick){
 							players[key].gameState =4;
@@ -236,7 +259,8 @@ app.ws('/', (ws, req) => {
     			}
     		}
     		if(data.comb){
-				players[data.comb].score += 1;
+    			players[data.comb].win = true;
+				scoreBord[data.comb].score += 1;
 				startRound();
     		}
 

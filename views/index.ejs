@@ -160,9 +160,16 @@ td,th {
   src="https://code.jquery.com/jquery-3.5.1.min.js"
   integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0="
   crossorigin="anonymous"></script>
+  <script src="/js/confetti.min.js"></script>
               <script>
                 var name = "<%- name %>";
-          let socket = new WebSocket("wss://"+location.host);
+                let socket
+                if(location.protocol == 'https:'){
+                   socket = new WebSocket("wss://"+location.host);
+                }else{
+                  socket = new WebSocket("ws://"+location.host);
+                }
+          
 
         socket.onopen = function(e) {
           var resp = {
@@ -183,7 +190,7 @@ td,th {
             if(data.white){
               $("#bottom").empty()
                     data.white.forEach(function(card){
-              card = $("<div></div>").text(card.text).addClass("card").addClass("white").addClass("grey").prop("card-id",card.id);
+              card = $("<div></div>").text(card.text).addClass("card").addClass("white").prop("card-id",card.id);
               $("#bottom").append(card);
                 });
             }
@@ -200,64 +207,31 @@ td,th {
             if(data.comb){
               $(".comb").remove();
               data.comb.forEach(function(card){
-                card = $("<div></div>").html(card.text).addClass("card").addClass("hidden").addClass("grey").addClass("comb").prop("card-name",card.name);
+                card = $("<div></div>").html(card.text).addClass("card").addClass("comb").prop("card-name",card.name);
                 $("#top").append(card);
               });
             }
-
+            if(data.win){
+              confetti.start();
+              setTimeout(()=>{confetti.stop()},1000);
+            }
 
             $("#score tbody").empty();
+            data.score.sort(function(a, b){return b.score - a.score});
             data.score.forEach(function(score){
               scorename = $("<td></td>").text(score.name);
               score = $("<td></td>").text(score.score);
               row= $("<tr></tr>").append(scorename).append(score);
               $("#score tbody").append(row);
             });
-
-            if(data.game==0){
-              $("#message").text("please wait for the game to start");
-            }else if(data.game== 1){
-              if(cardsneeded==1){
-                $("#message").text("please select the card that fits the gap");
-              }else{
-                $("#message").text("please select the cards that fit the gaps");
-              }
-              $(".white").removeClass("grey");
-              $(".white").click((e)=>{
-                if(cardsneeded>0){
-                  $(e.currentTarget).addClass("selected");
-                  cardsneeded-=1;
-                  if(cardsneeded==0){
-                    ids = $(".selected").map(function(){return $(this).prop("card-id")}).get();
-                    var resp = {
-                      update:false,
-                      name:name,
-                      white:ids
-                    };
-                    socket.send(JSON.stringify(resp));
-                  }
-                }
-              });
-            }else if(data.game== 2){
-              $("#message").text("please wait for all the players to select their cards");
-            }else if(data.game== 3){
-              $(".comb").removeClass("hidden");
-              $("#message").text("please wait while the winner is picked");
-            }else if(data.game== 4){
-              $(".comb").removeClass("hidden").removeClass("grey");
-              $("#message").text("please select the winner");
-              $(".comb").click((e)=>{
-                winner = $(e.currentTarget).prop("card-name");
-                console.log(winner);
-                 var resp = {
-                          update:false,
-                          name:name,
-                          comb:winner
-                        };
-                  console.log(resp);
-                  socket.send(JSON.stringify(resp));
-              });
+            setGameState(data.old);
+            if(data.game!=data.old){
+              window.requestAnimationFrame(()=>{window.requestAnimationFrame(()=>{
+                setGameState(data.game);
+              });});
             }
+            
+            
           }
         };
 
@@ -268,6 +242,58 @@ td,th {
         socket.onerror = function(error) {
 
         };
+        function setGameState(game){
+          if(game==0){
+            $("#message").text("please wait for the game to start");
+            $(".white").addClass("grey");
+            $(".comb").addClass("hidden").addClass("grey");
+          }else if(game== 1){
+            $(".white").removeClass("grey");
+            $(".comb").addClass("hidden").addClass("grey");
+            if(cardsneeded==1){
+              $("#message").text("please select the card that fits the gap");
+            }else{
+              $("#message").text("please select the cards that fit the gaps");
+            }
+            
+            $(".white").click((e)=>{
+              if(cardsneeded>0){
+                $(e.currentTarget).addClass("selected");
+                cardsneeded-=1;
+                if(cardsneeded==0){
+                  ids = $(".selected").map(function(){return $(this).prop("card-id")}).get();
+                  var resp = {
+                    update:false,
+                    name:name,
+                    white:ids
+                  };
+                  socket.send(JSON.stringify(resp));
+                }
+              }
+            });
+          }else if(game== 2){
+            $(".white").addClass("grey");
+            $(".comb").addClass("hidden").addClass("grey");
+            $("#message").text("please wait for all the players to select their cards");
+          }else if(game== 3){
+            $(".white").addClass("grey");
+            $(".comb").removeClass("hidden").addClass("grey");
+            $("#message").text("please wait while the winner is picked");
+          }else if(game== 4){
+            $(".white").addClass("grey");
+            $(".comb").removeClass("hidden").removeClass("grey");
+            $("#message").text("please select the winner");
+            $(".comb").click((e)=>{
+              winner = $(e.currentTarget).prop("card-name");
+               var resp = {
+                        update:false,
+                        name:name,
+                        comb:winner
+                      };
+                socket.send(JSON.stringify(resp));
+            });
+          }
+        }
         </script>
     </body>
   </html>
