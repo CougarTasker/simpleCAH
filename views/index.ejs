@@ -162,7 +162,7 @@ td,th {
   crossorigin="anonymous"></script>
               <script>
                 var name = "<%- name %>";
-          let socket = new WebSocket("ws://"+location.host);
+          let socket = new WebSocket("wss://"+location.host);
 
         socket.onopen = function(e) {
           var resp = {
