@@ -19,7 +19,7 @@ app.use(bodyParser.json());
 // for parsing application/xwww-
 app.use(bodyParser.urlencoded({ extended: true })); 
 
-function cardMaster(file,done){
+function cardMaster(file){
 	this.whiteCount = 0;
 	this.blackCount = 0
 	this.white= [];
@@ -48,7 +48,8 @@ function cardMaster(file,done){
   		this.blackCount++;
   	}
   	}
-  }).on("end",done);
+  });
+  //.on("end",()=>{console.log(this.white)});
 
   this.pickWhiteCard = ()=>{
   	return this.white[Math.floor(Math.random() * (this.whiteCount-1))];
@@ -65,7 +66,42 @@ function cardMaster(file,done){
   };
 
 }
+function multiCardMaster(cma,cmb,fact){
+	this.cma= cma;
+	this.cmb = cmb;
+	this.fact = fact
+	
 
+	
+  this.pickWhiteCard = ()=>{
+  	if(Math.random() > fact){
+  		return cma.pickWhiteCard();
+  	}else{
+  		return cmb.pickWhiteCard();
+  	}
+  };
+   this.pickBlackCard = ()=>{
+  	if(Math.random() > fact){
+  		return cma.pickBlackCard();
+  	}else{
+  		return cmb.pickBlackCard();
+  	}
+  };
+  this.pickNWhiteCards = (n)=>{
+  	out = [];
+  	for(i=0;i<n;i++){
+  		out.push(this.pickWhiteCard());
+  	}
+  	return out;
+  };
+
+}
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    let j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
 
 
 
@@ -89,36 +125,39 @@ app.get("/play",function(req,res){
 
 app.post("/play",function(req,res){
 	
-	console.log(req.body.name);
 	res.render("index",{               
     name:req.body.name
         });
 });
 
 var currentBlackCard = [];
-var cm = new cardMaster("Cards_Against_Humanity.csv",function(){});
+var cm = new multiCardMaster(new cardMaster("cust.csv"),new cardMaster("Cards_Against_Humanity.csv"),0.5);
 var currentCombCards = [];
-var gameState = 0;
 var players =[];
 var picker = 0;
 app.get("/start",function(req,res){
 
-    		currentBlackCard = [cm.pickBlackCard()];
-    		currentCombCards = [];
-    		gameState = 1;
-    		var i = 0;
-    		console.log(players);
-    		for(var key in players) {
-  				players[key].white = cm.pickNWhiteCards(10);
-  				players[key].score = 0;
-  				players[key].pick = (i++ == (picker % Object.keys(players).length));
-			}
-			
-			allUpdate();
+    	startRound();
+    	allUpdate();
     	res.send("done");
 });
 
-
+function startRound(){
+	currentBlackCard = [cm.pickBlackCard()];
+   	currentCombCards = [];
+	var i = 0;
+	picker = picker % Object.keys(players).length;
+	for(var key in players) {
+			players[key].white = players[key].white.concat(cm.pickNWhiteCards(10-players[key].white.length));
+			players[key].pick = (i++ == picker);
+			if(players[key].pick){
+				players[key].gameState =2;
+			}else{
+				players[key].gameState =1;
+			}
+	}
+	picker+=1;
+}
 app.ws('/', (ws, req) => {
 	
 
@@ -138,21 +177,19 @@ app.ws('/', (ws, req) => {
 	    		players[data.name].name= data.name;
 	    		players[data.name].pick = false;
 	    		players[data.name].score = 0;
-	    		console.log(players);
-	    		console.log("player added");
+	    		players[data.name].gameState =0;
+	    		allUpdate();
     	}
     	session = players[data.name];
 
     	if(data.update){
 
-    		console.log("update");
     		updateData={
     			update:false,
     			white:session.white,
     			black:currentBlackCard,
     			comb:currentCombCards,
-    			game:gameState,
-    			pick:session.pick,
+    			game:session.gameState,
     			score:Object.values(players)
     		}
 
@@ -177,23 +214,21 @@ app.ws('/', (ws, req) => {
     				text:text
     			}
     			currentCombCards.push(comb);
-    			console.log(players);
+    			shuffle(currentCombCards);
+    			session.gameState = 2;
     			if(currentCombCards.length >= Object.keys(players).length -1){
-    				gameState = 2
+					for(var key in players) {
+						if(players[key].pick){
+							players[key].gameState =4;
+						}else{
+							players[key].gameState =3;
+						}
+					}
     			}
     		}
     		if(data.comb){
 				players[data.comb].score += 1;
-	    		currentBlackCard = [cm.pickBlackCard()];
-				currentCombCards = [];
-				picker +=1;
-				gameState = 1;
-				var i = 0;
-				console.log(players);
-	    		for(var key in players) {
-	  				players[key].white = players[key].white.concat(cm.pickNWhiteCards(10-players[key].white.length)) ;
-	  				players[key].pick = (i++ == (picker% Object.keys(players).length));
-				}
+				startRound();
     		}
 
     	allUpdate();

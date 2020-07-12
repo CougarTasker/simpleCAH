@@ -3,6 +3,7 @@
     <head>
       <title>1$ Cards Against Humanity</title>
       <!--Import Google Icon Font-->
+      <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
       <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
       <!--Import materialize.css-->
 
@@ -10,6 +11,64 @@
       <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     </head>
     <style>
+      body{
+                -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Old versions of Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Edge, Opera and Firefox */
+                                  font-family: 'Roboto', sans-serif;
+      }
+      table,th,td {
+    border: none
+}
+
+table {
+    width: 75%;
+    margin:0 auto;
+    display: table;
+    border-collapse: collapse;
+    border-spacing: 0
+}
+
+table.striped tr {
+    border-bottom: none
+}
+
+table.striped>tbody>tr:nth-child(odd) {
+    background-color: rgba(242,242,242,0.5)
+}
+
+table.striped>tbody>tr>td {
+    border-radius: 0
+}
+
+table.highlight>tbody>tr {
+    -webkit-transition: background-color .25s ease;
+    transition: background-color .25s ease
+}
+
+table.highlight>tbody>tr:hover {
+    background-color: rgba(242,242,242,0.5)
+}
+
+table.centered thead tr th,table.centered tbody tr td {
+    text-align: center
+}
+
+tr {
+    border-bottom: 1px solid rgba(0,0,0,0.12)
+}
+
+td,th {
+    padding: 15px 5px;
+    display: table-cell;
+    text-align: left;
+    vertical-align: middle;
+    border-radius: 2px
+}
       .card-section{
         width: 100%;
         display: flex;
@@ -24,14 +83,15 @@
         border-radius: 0.5em;
         margin:0.3em;
         padding: 0.5em;
-        width: 8vw;
-        min-width: 10ch;
+        width: 10vw;
+        min-height: 20vh;
+        box-sizing: border-box;
+        min-width: 15ch;
         box-shadow: 0.25em 0.25em 1em 0em #00000094;
-        transition: box-shadow ease 0.5s;
-        word-wrap: break-word;
+        transition: box-shadow ease 0.5s, color ease 0.5s;
       }
       span.blank{
-        border-bottom: 1px solid black;
+        text-decoration:underline;
       }
       .black span.blank{
         display: inline-block;
@@ -41,7 +101,7 @@
         border-color: white;
       }
 
-      .card:hover{
+      .card:not(.selected):not(.grey):not(.hidden):hover{
         box-shadow:0.5em 0.5em 1.3em 0em #00000094;
       }
       .black{
@@ -50,19 +110,24 @@
         background-color: black;
       }
       .white{
-        align-self: 
+
       }
-      .comb:not(.hidden){
-        cursor: pointer;
+      .comb{
+         transition: box-shadow ease 0.5s, filter ease 2s;
       }
       .comb.hidden{
-        filter: blur(3px);
+        filter: blur(4px);
       }
       .card.selected{
         border:2px solid black;
-         box-shadow: box-shadow: 0em 0em 0em 0em #00000094;
+         box-shadow: 0em 0em 0em 0em #00000094;
       }
-      .card.white:not(.selected),.card.comb:not(.selected):not(.hidden){
+      .grey{
+        color: white;
+        background-color: grey;
+        box-shadow: 0em 0em 0em 0em #00000094;
+      }
+      .card.white:not(.selected):not(.grey),.card.comb:not(.selected):not(.hidden):not(.grey){
         cursor: pointer;
        
       }
@@ -82,8 +147,10 @@
 
         </div>
         <div id="score">
-          <table>
-            <caption>scores</caption>
+          <table class="striped">
+            <thead>
+              <tr><td>Name</td><td>Score</td></tr>
+            </thead>
             <tbody>
             </tbody>
           </table>
@@ -107,8 +174,6 @@
         
         var cardsneeded = 0;
         socket.onmessage = function(event) {
-          console.log("recived");
-          console.log(event);
           var data = JSON.parse(event.data);
           if(data.update){
             var resp = {update:true,name:name};
@@ -118,7 +183,7 @@
             if(data.white){
               $("#bottom").empty()
                     data.white.forEach(function(card){
-              card = $("<div></div>").text(card.text).addClass("card").addClass("white").prop("card-id",card.id);
+              card = $("<div></div>").text(card.text).addClass("card").addClass("white").addClass("grey").prop("card-id",card.id);
               $("#bottom").append(card);
                 });
             }
@@ -135,65 +200,64 @@
             if(data.comb){
               $(".comb").remove();
               data.comb.forEach(function(card){
-              card = $("<div></div>").html(card.text).addClass("card").addClass("hidden").addClass("comb").prop("card-name",card.name);
-              $("#top").append(card);
-            });
+                card = $("<div></div>").html(card.text).addClass("card").addClass("hidden").addClass("grey").addClass("comb").prop("card-name",card.name);
+                $("#top").append(card);
+              });
             }
+
+
             $("#score tbody").empty();
             data.score.forEach(function(score){
               scorename = $("<td></td>").text(score.name);
               score = $("<td></td>").text(score.score);
               row= $("<tr></tr>").append(scorename).append(score);
               $("#score tbody").append(row);
-            })
+            });
 
-              if(data.game==0){
-                $("#message").text("please wait for the game to start");
-              }else if(data.game== 1){
-                $("#message").text("");
-                if(data.pick){
-
-                  $("#message").text("it is your turn to pick who wins");
-                }else{
-                      $(".white").click((e)=>{
-                        if(cardsneeded>0){
-                          $(e.target).addClass("selected");
-                          cardsneeded-=1;
-                          if(cardsneeded==0){
-                            ids = $(".selected").map(function(){return $(this).prop("card-id")}).get();
-                            var resp = {
-                              update:false,
-                              name:name,
-                              white:ids
-                            };
-                            socket.send(JSON.stringify(resp));
-                          }
-                        }
-                   });
-                }
-              }else if(data.game== 2){
-                  $("#message").text("");
-                  $(".comb").removeClass("hidden");
-                  if(!data.pick){
-
-                  $("#message").text("please wait while the winner is picked");
-          
-                }else{
-                  $(".comb").click((e)=>{
-                    $(e.target).prop("card-name");
-                     var resp = {
-                              update:false,
-                              name:name,
-                              comb:;
-                            };
-                      socket.send(JSON.stringify(resp));
-                  });
-                }
+            if(data.game==0){
+              $("#message").text("please wait for the game to start");
+            }else if(data.game== 1){
+              if(cardsneeded==1){
+                $("#message").text("please select the card that fits the gap");
+              }else{
+                $("#message").text("please select the cards that fit the gaps");
               }
-          
-
-
-
+              $(".white").removeClass("grey");
+              $(".white").click((e)=>{
+                if(cardsneeded>0){
+                  $(e.currentTarget).addClass("selected");
+                  cardsneeded-=1;
+                  if(cardsneeded==0){
+                    ids = $(".selected").map(function(){return $(this).prop("card-id")}).get();
+                    var resp = {
+                      update:false,
+                      name:name,
+                      white:ids
+                    };
+                    socket.send(JSON.stringify(resp));
+                  }
+                }
+              });
+            }else if(data.game== 2){
+              $("#message").text("please wait for all the players to select their cards");
+            }else if(data.game== 3){
+              $(".comb").removeClass("hidden");
+              $("#message").text("please wait while the winner is picked");
+            }else if(data.game== 4){
+              $(".comb").removeClass("hidden").removeClass("grey");
+              $("#message").text("please select the winner");
+              $(".comb").click((e)=>{
+                winner = $(e.currentTarget).prop("card-name");
+                console.log(winner);
+                 var resp = {
+                          update:false,
+                          name:name,
+                          comb:winner
+                        };
+                  console.log(resp);
+                  socket.send(JSON.stringify(resp));
+              });
+            }
           }
         };
 
