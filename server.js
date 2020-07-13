@@ -93,7 +93,7 @@ function multiCardMaster(cma,cmb,fact){
 	  		card= cmb.pickBlackCard();
 	  	}
 	  }while(this.pblack.includes(card));
-	  if(this.pblack.length>=10){
+	  if(this.pblack.length>=15){
 	  	this.pblack.shift();
 	  }
 	  this.pblack.push(card);
@@ -118,10 +118,30 @@ function shuffle(array) {
 
 
 function allUpdate(){
+	var start = Date.now();
 	expressWs.getWss().clients.forEach((client)=>{
 		update = {update:true}
 		client.send(JSON.stringify(update));
 	});
+	//console.log("time start;");
+	var length = 30*1000
+	setTimeout(()=>{
+		reset = false;
+		// console.log(players);
+		for(var key in players){
+		// 	console.log(key);
+			if (players[key].active<start-1000){
+				// console.log("del");
+				delete players[key];
+				delete scoreBord[key];
+				reset= true;
+			}
+		 }
+		if(reset){
+			startRound();
+    		allUpdate();
+		}
+	},length)
 }
 
 
@@ -148,19 +168,41 @@ var players =[];
 var picker = 0;
 var roundPlayerCount = 0;
 var scoreBord = [];
+var autoNext;
 app.get("/start",function(req,res){
 
     	startRound();
-    	allUpdate();
     	res.send("done");
 });
 app.get("/stop",function(req,res){
 
     	stop();
-    	allUpdate();
     	res.send("done");
 });
+function startWinnerPicking(){
+	if(currentCombCards.length != 0){
+		clearTimeout(autoNext);
+		for(var key in players) {
+			if(players[key].pick){
+				players[key].gameState =4;
+			}else{
+				players[key].gameState =3;
+			}
+		}
+		autoNext = setTimeout(()=>{
+			for(card of currentCombCards){
+			    players[card.name].win = true;
+				scoreBord[card.name].score += 1;
+			}
+			startRound();
+		},1*60*1000);
+	}else{
+		startRound();
+	}
+	
+}
 function startRound(){
+	clearTimeout(autoNext);
 	currentBlackCard = [cm.pickBlackCard()];
    	currentCombCards = [];
 	var i = 0;
@@ -173,18 +215,26 @@ function startRound(){
 			}else{
 				players[key].gameState =1;
 			}
+			scoreBord[key].done = false;
 	}
 	picker+=1;
 	roundPlayerCount = Object.keys(players).length;
+	autoNext = setTimeout(()=>{
+		startWinnerPicking();
+		allUpdate();
+	},(currentBlackCard[0].spaces + 1)*30*1000);
+	allUpdate();
 }
 app.post("/players",function(req,res){
     	res.send(JSON.stringify(Object.keys(players)));
 });
 function stop(){
 	players =[];
+	clearTimeout(autoNext);
 	currentCombCards = [];
 	currentBlackCard = [];
 	scoreBord=[];
+	allUpdate();
 }
 app.ws('/', (ws, req) => {
 	
@@ -203,14 +253,15 @@ app.ws('/', (ws, req) => {
 	    		players[data.name].white = [];
 	    		players[data.name].name= data.name;
 	    		players[data.name].pick = false;
-	    		scoreBord[data.name]= {name:data.name,score:0};
+	    		scoreBord[data.name]= {name:data.name,score:0,done:false};
+	    		players[data.name].active = Date.now();
 	    		players[data.name].gameState =0;
 	    		players[data.name].old =0;
 	    		players[data.name].win = false;
 	    		allUpdate();
     	}
     	session = players[data.name];
-
+    	session.active = Date.now();
     	if(data.update){
     		updateData={
     			update:false,
@@ -230,6 +281,9 @@ app.ws('/', (ws, req) => {
     			parts = session.white.filter(function(o){
     				return data.white.includes(o.id);
     			});
+    			parts.sort(function(a,b){
+    				return data.white.indexOf(a)-data.white.indexOf(b)
+    			});
     			session.white = session.white.filter(function(o){
     				return !data.white.includes(o.id);
     			});
@@ -248,23 +302,19 @@ app.ws('/', (ws, req) => {
     			currentCombCards.push(comb);
     			shuffle(currentCombCards);
     			session.gameState = 2;
+    			scoreBord[data.name].done = true;
     			if(currentCombCards.length >= roundPlayerCount -1){
-					for(var key in players) {
-						if(players[key].pick){
-							players[key].gameState =4;
-						}else{
-							players[key].gameState =3;
-						}
-					}
+    				startWinnerPicking();
     			}
+    			allUpdate();
     		}
     		if(data.comb){
+    			scoreBord[data.name].done = true;
     			players[data.comb].win = true;
 				scoreBord[data.comb].score += 1;
 				startRound();
     		}
 
-    	allUpdate();
     	}
 
         //ws.send("hello" + req.session.name)
