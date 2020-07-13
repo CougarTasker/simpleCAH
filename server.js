@@ -209,6 +209,8 @@ function startRound(){
 			players[key].white = players[key].white.concat(cm.pickNWhiteCards(10-players[key].white.length,players[key].white));
 			players[key].pick = (i++ == picker);
 			if(players[key].pick){
+				console.log(key)
+				console.log("name");
 				players[key].gameState =2;
 			}else{
 				players[key].gameState =1;
