@@ -116,21 +116,12 @@ function shuffle(array) {
 }
 
 
-
-function allUpdate(){
-	var start = Date.now();
-	expressWs.getWss().clients.forEach((client)=>{
-		update = {update:true}
-		client.send(JSON.stringify(update));
-	});
-	//console.log("time start;");
-	var length = 30*1000
-	setTimeout(()=>{
+setInterval(()=>{
 		reset = false;
 		// console.log(players);
 		for(var key in players){
 		// 	console.log(key);
-			if (players[key].active<start-1000){
+			if (players[key].active<startHeartbeat-1000){
 				// console.log("del");
 				delete players[key];
 				delete scoreBord[key];
@@ -139,9 +130,16 @@ function allUpdate(){
 		 }
 		if(reset){
 			startRound();
-    		allUpdate();
 		}
-	},length)
+		allUpdate();
+	},30*1000);
+var startHeartbeat;
+function allUpdate(){
+	startHeartbeat = Date.now();
+	expressWs.getWss().clients.forEach((client)=>{
+		update = {update:true}
+		client.send(JSON.stringify(update));
+	});
 }
 
 
