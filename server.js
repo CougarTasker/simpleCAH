@@ -213,6 +213,7 @@ function startRound(){
 				console.log("name");
 				players[key].gameState =2;
 			}else{
+				console.log("not");
 				players[key].gameState =1;
 			}
 			scoreBord[key].done = false;
