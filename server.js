@@ -1,11 +1,10 @@
-const fs = require("fs");
+
 const express = require('express');
-const csv = require("csv-parse");
+
 
 
 var bodyParser = require('body-parser');
-const app = express()
-const expressWs = require('express-ws')(app);
+const app = express();
 
 app.use(express.static('public'));
 
@@ -19,95 +18,7 @@ app.use(bodyParser.json());
 // for parsing application/xwww-
 app.use(bodyParser.urlencoded({ extended: true })); 
 
-function cardMaster(file){
-	this.whiteCount = 0;
-	this.blackCount = 0
-	this.white= [];
-	this.black = [];
 
-	
-
-	fs.createReadStream(file)
-  .pipe(csv())
-  .on('data', (row) => {
-  	if(row[0] =="Answer"){
-  		this.white.push({
-  			id:this.whiteCount,
-  			text: row[1],
-  		});
-  		this.whiteCount++;
-  	}else{
-  		rgx =/(^|.)_+($|.)/g;
-  		spc =row[1].match(rgx);
-  		if(spc != null){
-  			  		this.black.push({
-  			id:this.blackCount,
-  			text: row[1],
-  			spaces:spc.length
-  		});
-  		this.blackCount++;
-  	}
-  	}
-  });
-  //.on("end",()=>{console.log(this.white)});
-
-  this.pickWhiteCard = ()=>{
-  	return this.white[Math.floor(Math.random() * (this.whiteCount-1))];
-  };
-   this.pickBlackCard = ()=>{
-  	return this.black[Math.floor(Math.random() * (this.blackCount-1))];
-  };
-  this.pickNWhiteCards = (n)=>{
-  	out = [];
-  	for(i=0;i<n;i++){
-  		out.push(this.pickWhiteCard());
-  	}
-  	return out;
-  };
-
-}
-function multiCardMaster(cma,cmb,fact){
-	this.cma= cma;
-	this.cmb = cmb;
-	this.fact = fact
-	this.pblack = []
-
-	
-  this.pickWhiteCard = (cards)=>{
-  	var card;
-  	do{
-	  	if(Math.random() > this.fact){
-	  		card= cma.pickWhiteCard();
-	  	}else{
-	  		card= cmb.pickWhiteCard();
-	  	}
-	  }while(cards.includes(card));
-	  return card;
-  };
-   this.pickBlackCard = ()=>{
-  	var card;
-  	do{
-	  	if(Math.random() > this.fact){
-	  		card= cma.pickBlackCard();
-	  	}else{
-	  		card= cmb.pickBlackCard();
-	  	}
-	  }while(this.pblack.includes(card));
-	  if(this.pblack.length>=15){
-	  	this.pblack.shift();
-	  }
-	  this.pblack.push(card);
-	  return card;
-  };
-  this.pickNWhiteCards = (n,cards)=>{
-  	out = [];
-  	for(i=0;i<n;i++){
-  		out.push(this.pickWhiteCard(cards));
-  	}
-  	return out;
-  };
-
-}
 function shuffle(array) {
   for (let i = array.length - 1; i > 0; i--) {
     let j = Math.floor(Math.random() * (i + 1));
@@ -160,7 +71,6 @@ app.post("/play",function(req,res){
         });
 });
 var currentBlackCard = [];
-var cm = new multiCardMaster(new cardMaster("cust.csv"),new cardMaster("Cards_Against_Humanity.csv"),0.5);
 var currentCombCards = [];
 var players =[];
 var picker = 0;

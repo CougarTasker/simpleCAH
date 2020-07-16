@@ -1,0 +1,114 @@
+			body{
+								-webkit-touch-callout: none; /* iOS Safari */
+		-webkit-user-select: none; /* Safari */
+		 -khtml-user-select: none; /* Konqueror HTML */
+			 -moz-user-select: none; /* Old versions of Firefox */
+				-ms-user-select: none; /* Internet Explorer/Edge */
+						user-select: none; /* Non-prefixed version, currently
+																	supported by Chrome, Edge, Opera and Firefox */
+																	font-family: 'Roboto', sans-serif;
+			}
+			table,th,td {
+		border: none
+}
+
+
+			.card-section{
+				width: 100%;
+				display: flex;
+				flex-direction: row;
+				flex-wrap: wrap;
+				justify-content:flex-start;
+				align-items: stretch;
+				align-content: flex-start;
+				min-height: 50vh;
+			}
+			.card{
+				border-radius: 0.5em;
+				margin:0.3em;
+				padding: 0.5em;
+				width: 10vw;
+				min-height: 20vh;
+				box-sizing: border-box;
+				min-width: 15ch;
+				box-shadow: 0.25em 0.25em 1em 0em #00000094;
+				transition: box-shadow ease 0.5s, color ease 0.5s;
+			}
+			span.blank{
+				text-decoration:underline;
+			}
+			.black span.blank{
+				display: inline-block;
+				min-width: 5ch;
+				max-width: 8ch;
+				width: 50%;
+				border-color: white;
+			}
+
+			div:not(.grey):not(.hidden) .card:not(.selected):hover{
+				box-shadow:0.5em 0.5em 1.3em 0em #00000094;
+				cursor: pointer;
+
+			}
+			.grey .card{
+				color: white;
+				background-color: grey;
+				box-shadow: 0em 0em 0em 0em #00000094;
+			}
+			.black{
+				align-self: flex-start;
+				color: white !important;
+				background-color: black !important;
+			}
+			.white{
+
+			}
+			.comb{
+				 transition: box-shadow ease 0.5s, filter ease 2s;
+			}
+			.hidden .comb{
+				filter: blur(4px);
+			}
+			.card.selected{
+				border:2px solid black;
+				 box-shadow: 0em 0em 0em 0em #00000094;
+			}
+
+/*			.card.white:not(.selected):not(.grey),.card.comb:not(.selected):not(.hidden):not(.grey){
+				cursor: pointer;
+			 
+			}*/
+			.card.selected:hover{
+				box-shadow: box-shadow: 0em 0em 0em 0em #00000094;
+			}
+
+		.outer:not(.shown){
+			display: none;
+		}
+		.shown.outer{
+    		position: fixed;
+    		top:0;
+    		bottom: 0;
+    		left: 0;
+    		right: 0;
+    		background-color: white;
+    		z-index: 100;
+    		display: block;
+    	}
+    	.outer>div{
+    		display: flex;
+    		flex-direction: column;
+    		align-items:stretch;
+    		height: 100%;
+    	}
+    	form{
+    		flex-grow: 1;
+    		flex-basis: 0;
+    	}
+    	.flex{
+    		height: 100%;
+    		display: flex;
+    		flex-direction: column;
+    		align-items:center;
+    		justify-content: center;
+    	}
