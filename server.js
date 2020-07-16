@@ -199,6 +199,7 @@ function startWinnerPicking(){
 	}
 	
 }
+console.log("aaaaa");
 function startRound(){
 	clearTimeout(autoNext);
 	currentBlackCard = [cm.pickBlackCard()];
