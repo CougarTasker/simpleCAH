@@ -281,8 +281,8 @@ app.ws('/', (ws, req) => {
     			parts = session.white.filter(function(o){
     				return data.white.includes(o.id);
     			});
-    			parts.sort(function(a,b){
-    				return data.white.indexOf(a)-data.white.indexOf(b)
+    			parts =  parts.sort(function(a,b){
+    				return data.white.indexOf(a.id)-data.white.indexOf(b.id);
     			});
     			session.white = session.white.filter(function(o){
     				return !data.white.includes(o.id);
